@@ -77,15 +77,56 @@ internal/
       webhook_event_store.go
       webhook_signature_validator.go
 
-  application/                     # Orquestracao (use cases)
-    create_payment/usecase.go      # package createpayment
-    authorize_payment/usecase.go   # package authorizepayment
-    capture_payment/usecase.go     # package capturepayment
-    cancel_payment/usecase.go      # package cancelpayment
-    refund_payment/usecase.go      # package refundpayment
-    validate_payment/usecase.go    # package validatepayment
-    webhook_processor/usecase.go   # package webhookprocessor
-    shared/mapper.go               # package shared (ToPaymentResult)
+  application/                     # Orquestracao (use cases agrupados por entidade)
+    delivery/                      # Use cases de delivery
+      assign_driver/usecase.go     # package assigndriver
+      cancel/usecase.go            # package canceldelivery
+      confirm/usecase.go           # package confirmdelivery
+      confirm_pickup/usecase.go    # package confirmpickup
+      create/usecase.go            # package createdelivery
+      query/usecase.go             # package deliveryquery
+      report_problem/usecase.go    # package reportproblem
+      unassign_driver/usecase.go   # package unassigndriver
+      update_status/usecase.go     # package updatestatus
+    driver/                        # Use cases de driver
+      auth/                        # Sub-grupo: autenticacao
+        confirm_password_reset/    # package confirmpasswordreset
+        request_password_reset/    # package requestpasswordreset
+        set_password/              # package setpassword
+        validate_reset_token/      # package validateresettoken
+      avatar/                      # Sub-grupo: avatar
+        delete/                    # package deleteavatar
+        get/                       # package getavatar
+        upload/                    # package uploadavatar
+      position/                    # Sub-grupo: posicao
+        publish/                   # package publishposition
+        query/                     # package positionquery
+      create/usecase.go            # package createdriver
+      deactivate/usecase.go        # package deactivatedriver
+      go_offline/usecase.go        # package gooffline
+      go_online/usecase.go         # package goonline
+      query/usecase.go             # package driverquery
+      suspend/usecase.go           # package suspenddriver
+      take_break/usecase.go        # package takebreak
+      unsuspend/usecase.go         # package unsuspenddriver
+      update/usecase.go            # package updatedriver
+      update_location/usecase.go   # package updatelocation
+    driver_merchant/               # Use cases de driver-merchant
+      activate/usecase.go          # package activatedrivermerchant
+      associate/usecase.go         # package associatedrivermerchant
+      deactivate/usecase.go        # package deactivatedrivermerchant
+      delete/usecase.go            # package deletedrivermerchant
+      query/usecase.go             # package drivermerchantquery
+    merchant/                      # Use cases de merchant
+      settings/                    # Sub-grupo: configuracoes
+        get/                       # package getmerchantsettings
+        update/                    # package updatemerchantsettings
+      activate/usecase.go          # package activatemerchant
+      create/usecase.go            # package createmerchant
+      deactivate/usecase.go        # package deactivatemerchant
+      query/usecase.go             # package merchantquery
+      update/usecase.go            # package updatemerchant
+    shared/                        # Utilitarios compartilhados
 
   adapters/                        # Implementacoes tecnicas
     grpc/
@@ -181,7 +222,7 @@ application NAO importa adapters
 | Result (output) | `domain/<aggregate>/result.go` | `domain/payment/result.go` |
 | Use case interface | `ports/inbound/` | `ports/inbound/create_payment.go` |
 | Repository interface | `ports/outbound/` | `ports/outbound/payment_repository.go` |
-| Use case impl | `application/<use_case>/usecase.go` | `application/create_payment/usecase.go` |
+| Use case impl | `application/<entity>/<use_case>/usecase.go` | `application/delivery/create/usecase.go` |
 | GORM model | `adapters/repository/postgres/model.go` | `PaymentModel` |
 | Repo impl | `adapters/repository/postgres/` | `payment_repository.go` |
 | Domain<->Model mapper | `adapters/repository/postgres/mapper.go` | `ToModel()`, `ToDomain()` |
@@ -210,7 +251,7 @@ application NAO importa adapters
 1. Domain NUNCA importa pacotes externos (exceto stdlib e uuid)
 2. Ports contem APENAS interfaces — zero structs, zero DTOs, zero implementacao
 3. Commands e Results vivem em `domain/`, NAO em `ports/`
-4. Um use case por diretorio em `application/`
+4. Use cases agrupados por entidade em `application/<entity>/<use_case>/` (sub-grupos permitidos: auth, avatar, position, settings)
 5. Cada adapter tem seu proprio package (nao misture grpc com webhook)
 6. gRPC handler fica em `adapters/grpc/handler/` (package `handler`), mapper em `adapters/grpc/mapper/` (package `mapper`)
 7. GORM models ficam APENAS em `adapters/repository/postgres/` — nunca no domain
