@@ -18,7 +18,7 @@ $ARGUMENTS
 | --- | --- |
 | Output | `ai_docs/` folder + updated `README.md` at project root |
 | Accuracy | All info based on REAL code — never guess |
-| Interaction | Question phase MANDATORY before generating |
+| Interaction | No questions — analyze and generate autonomously |
 | Language | `ai_docs/` in English, `README.md` in PT-BR |
 | Format | Markdown with tables, real code examples |
 
@@ -27,10 +27,9 @@ $ARGUMENTS
 | Step | Action | Condition |
 | --- | --- | --- |
 | 1 | Repository discovery | Always |
-| 2 | Ask user (8-12 questions) | Always |
-| 3 | Generate AI docs (`ai_docs/`) | After approval |
-| 4 | Update README.md | Always |
-| 5 | Validate | Always |
+| 2 | Generate AI docs (`ai_docs/`) | Always |
+| 3 | Update README.md | Always |
+| 4 | Validate | Always |
 
 ### Step 1: Discovery
 
@@ -46,22 +45,7 @@ Automatically analyze:
 - CI/CD configs, Dockerfiles, K8s manifests
 - Existing README.md — identify outdated sections
 
-### Step 2: Questions (8-12)
-
-Cover:
-- **Purpose**: repo's role in ecosystem, business problem solved
-- **Stack**: tech decisions and motivations
-- **Features**: critical, planned, deprecated
-- **Business Rules**: complex, compliance, essential validations
-- **APIs** (if applicable): main endpoints, auth, rate limiting
-- **Microservices** (if applicable): domain, communication, resilience
-- **Integrations**: related repos, critical dependencies
-- **Gotchas**: pitfalls, counter-intuitive behaviors, workarounds
-- **What do you wish you knew when you started?**
-
-Multiple rounds if needed. Present summary and ask for approval.
-
-### Step 3: Generate AI Docs
+### Step 2: Generate AI Docs
 
 Create `ai_docs/` with:
 
@@ -85,7 +69,7 @@ Each file:
 - Non-applicable sections: omit entirely (don't leave empty)
 - Undeterminable info: mark "TO BE COMPLETED" with instructions
 
-### Step 4: Update README.md
+### Step 3: Update README.md
 
 Update the project `README.md` to reflect the **current** codebase. Also update `docs/README.md` if it exists.
 
@@ -112,7 +96,7 @@ Rules:
 - Folder structure must be max 3 levels deep (don't list every file)
 - If `docs/README.md` exists and is outdated, update it too or recommend removal
 
-### Step 5: Validate
+### Step 4: Validate
 
 - [ ] All content based on real code
 - [ ] Functional examples
