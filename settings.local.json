@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build:*)",
+      "Bash(go test:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//home/gengar/Public/logistics-service-core/**)",
+      "Bash(done)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(git mv:*)",
+      "Bash(find . -name '*.go' -exec sed -i 's|github.com/meucontrole-ai/logistics-service-core/internal/core/domain/shared|github.com/meucontrole-ai/logistics-service-core/internal/domain/shared|g; s|github.com/meucontrole-ai/logistics-service-core/internal/core/domain|github.com/meucontrole-ai/logistics-service-core/internal/domain|g; s|github.com/meucontrole-ai/logistics-service-core/internal/core/i18n|github.com/meucontrole-ai/logistics-service-core/internal/i18n|g' {} +)",
+      "Bash(find /home/gengar/Public/logistics-service-core -type f -name *.go -exec grep -l internal/domain {})",
+      "Bash(2)",
+      "Bash(grep -h \"^type [A-Z]\" /home/gengar/Public/logistics-service-core/internal/domain/*.go)",
+      "Bash(head -1 /home/gengar/Public/logistics-service-core/internal/domain/*.go)",
+      "Bash(for file:*)",
+      "Bash(do grep:*)",
+      "Bash(grep -h \"Money\\\\|GeoLocation\\\\|Address\\\\|ContactInfo\\\\|Document\" /home/gengar/Public/logistics-service-core/internal/domain/*.go)",
+      "Bash(grep -l \"DriverID\\\\|Driver\" /home/gengar/Public/logistics-service-core/internal/domain/delivery*.go)",
+      "Bash(grep -l \"DeliveryStatus\\\\|Delivery\" /home/gengar/Public/logistics-service-core/internal/domain/driver*.go)",
+      "Bash(grep -h \"import\\\\|Money\\\\|GeoLocation\\\\|Address\\\\|ContactInfo\\\\|Document\\\\|PaymentMethod\\\\|CancelReason\\\\|ProblemReason\\\\|VehicleType\" /home/gengar/Public/logistics-service-core/internal/domain/driver*.go /home/gengar/Public/logistics-service-core/internal/domain/delivery*.go)",
+      "Bash(grep -c \"type.*struct\" /home/gengar/Public/logistics-service-core/internal/domain/*.go)",
+      "Bash(find /home/gengar/Public/logistics-service-core -type f -name *.go -path */internal/* ! -path */domain/* -exec grep -l internal/domain {})",
+      "Bash(ls /home/gengar/Public/logistics-service-core/internal/domain/*.go)",
+      "Bash(find . -name *.go -not -path ./internal/domain/shared/* -exec grep -l \"domain\\\\.\\\\\\(Address\\\\|GeoLocation\\\\|ContactInfo\\\\|Currency\\\\|Money\\\\|NewMoney\\\\|MustNewMoney\\\\|Document\\\\|TimeWindow\\\\|VehicleType\\\\|PaymentMethod\\\\|EmailMessage\\\\|StreamMessage\\\\\\)\" {} +)",
+      "Bash(find . -name '*.go' -not -path './internal/domain/shared/*' -exec sed -i -e 's/domain\\\\.Address\\\\b/shared.Address/g' -e 's/domain\\\\.GeoLocation\\\\b/shared.GeoLocation/g' -e 's/domain\\\\.ContactInfo\\\\b/shared.ContactInfo/g' -e 's/domain\\\\.CurrencyBRL\\\\b/shared.CurrencyBRL/g' -e 's/domain\\\\.CurrencyUSD\\\\b/shared.CurrencyUSD/g' -e 's/domain\\\\.CurrencyEUR\\\\b/shared.CurrencyEUR/g' -e 's/domain\\\\.Currency\\\\b/shared.Currency/g' -e 's/domain\\\\.MustNewMoney\\\\b/shared.MustNewMoney/g' -e 's/domain\\\\.NewMoney\\\\b/shared.NewMoney/g' -e 's/domain\\\\.Money\\\\b/shared.Money/g' -e 's/domain\\\\.Document\\\\b/shared.Document/g' -e 's/domain\\\\.TimeWindow\\\\b/shared.TimeWindow/g' -e 's/domain\\\\.VehicleTypeBicycle\\\\b/shared.VehicleTypeBicycle/g' -e 's/domain\\\\.VehicleTypeMotorcyle\\\\b/shared.VehicleTypeMotorcyle/g' -e 's/domain\\\\.VehicleTypeCar\\\\b/shared.VehicleTypeCar/g' -e 's/domain\\\\.VehicleTypeVan\\\\b/shared.VehicleTypeVan/g' -e 's/domain\\\\.VehicleTypeTruck\\\\b/shared.VehicleTypeTruck/g' -e 's/domain\\\\.VehicleType\\\\b/shared.VehicleType/g' -e 's/domain\\\\.PaymentMethodOnline\\\\b/shared.PaymentMethodOnline/g' -e 's/domain\\\\.PaymentMethodOffline\\\\b/shared.PaymentMethodOffline/g' -e 's/domain\\\\.PaymentMethodPrepaid\\\\b/shared.PaymentMethodPrepaid/g' -e 's/domain\\\\.PaymentMethod\\\\b/shared.PaymentMethod/g' -e 's/domain\\\\.EmailMessage\\\\b/shared.EmailMessage/g' -e 's/domain\\\\.StreamMessage\\\\b/shared.StreamMessage/g' {} +)",
+      "Bash(grep -l '\\\\bAddress\\\\b\\\\|\\\\bContactInfo\\\\b\\\\|\\\\bGeoLocation\\\\b\\\\|\\\\bMoney\\\\b\\\\|\\\\bNewMoney\\\\b\\\\|\\\\bMustNewMoney\\\\b\\\\|\\\\bCurrency\\\\b\\\\|\\\\bDocument\\\\b\\\\|\\\\bTimeWindow\\\\b\\\\|\\\\bVehicleType\\\\b\\\\|\\\\bPaymentMethod\\\\b\\\\|\\\\bEmailMessage\\\\b\\\\|\\\\bStreamMessage\\\\b' /home/gengar/Public/logistics-service-core/internal/domain/*.go)",
+      "Bash(grep -rn 'shared\\\\.shared\\\\.\\\\|package shared\\\\.\\\\|\"\"\"\"shared\\\\.' internal/domain/*.go)",
+      "Bash(go install:*)",
+      "Bash(~/go/bin/goimports -w ./...)",
+      "Bash(/home/gengar/.local/share/mise/installs/go/1.26.1/bin/goimports -w ./...)",
+      "Bash(xargs -0 /home/gengar/.local/share/mise/installs/go/1.26.1/bin/goimports -w)",
+      "Bash(grep -rn 'shared\\\\.\\\\\\(PaymentMethod\\\\|Document\\\\|Money\\\\|Address\\\\|Currency\\\\\\)' internal/domain/*.go)",
+      "Bash(grep -rn 'shared\\\\.\\\\\\(PaymentMethod\\\\|Document\\\\|Money\\\\|Address\\\\|Currency\\\\\\)\\\\b' internal/domain/*.go)",
+      "Bash(grep -rn '\tshared\\\\.' internal/domain/*.go)"
+    ]
+  }
+}

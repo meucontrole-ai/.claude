@@ -145,7 +145,7 @@ Payment service in Go with hexagonal architecture (ports & adapters) and DDD.
 
 - `domain/` — Aggregates, value objects, events, errors (pure rules, zero external dependency)
 - `ports/` — Interfaces only (inbound: use cases, outbound: repos/providers)
-- `application/` — Use cases (orchestration, no business logic)
+- `application/` — Use cases grouped by entity (delivery/, driver/, merchant/, driver_merchant/)
 - `adapters/` — gRPC handlers, repositories, providers, consumers
 - `bootstrap/` — Manual DI (no framework)
 - `cmd/` — Binaries (service_core, service_webhook, service_saga)
