@@ -9,12 +9,28 @@ Guide for AI assistants working in this repository. Fullstack: Go (Hexagonal/DDD
 - **Docs in `.claude/`**: English.
 - **File names**: English.
 
+## AI Documentation (`ai_docs/`)
+
+If the `ai_docs/` directory exists at the project root, **ALWAYS consult it** when you need broader context about the project. These docs complement `.claude/docs/` — use them for high-level understanding and cross-cutting concerns.
+
+| File | Content | When to load |
+| --- | --- | --- |
+| `ai_docs/index.md` | Index with quick reference | First read — overview of the project |
+| `ai_docs/stack.md` | Tech stack, versions, infra | Understanding tech decisions |
+| `ai_docs/patterns.md` | Architecture, naming, testing | Understanding conventions |
+| `ai_docs/features.md` | Capabilities, delivery states, gRPC services | Understanding scope |
+| `ai_docs/business-rules.md` | Delivery lifecycle, driver states, merchant rules | Implementing domain logic |
+| `ai_docs/gotchas.md` | Pitfalls, non-obvious behaviors | Avoiding common mistakes |
+| `ai_docs/integrations.md` | External services, event contracts | Working with integrations |
+| `ai_docs/apis.md` | gRPC services, RPCs, grpcurl examples | Working with API layer |
+| `ai_docs/services.md` | Microservice domains, deployment, data flow | Understanding infra/deploy |
+
 ## Auto-Routing (MANDATORY)
 
 **BEFORE writing any code or answering any technical question**, you MUST:
 
 1. Analyze the user's task
-2. Consult the routing table below and identify ALL relevant docs
+2. Consult the routing table below and identify ALL relevant docs (including `ai_docs/` when applicable)
 3. Read the identified docs using the Read tool
 4. Only then execute the task following the documented patterns
 
