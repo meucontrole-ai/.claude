@@ -239,4 +239,3 @@ This ensures corrections are **persistent** across conversations. The user corre
 | `/test-plan` | Analyze test gaps and optionally write tests |
 | `/health-check` | Verify compliance with all conventions |
 | `/generate-docs` | Generate complete documentation in `ai_docs/` |
-| `/doc-context` | Generate `.claude/` structure for any repository |

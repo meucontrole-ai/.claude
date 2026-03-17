@@ -1,6 +1,6 @@
 # Generate Project Documentation
 
-Analyze the repository and generate complete documentation in `ai_docs/` for humans and AI.
+Analyze the repository and generate complete documentation in `ai_docs/` for AI assistants, AND update the project `README.md` (and `docs/README.md` if it exists) to reflect the current state of the codebase.
 
 ## Usage
 
@@ -16,10 +16,10 @@ $ARGUMENTS
 
 | Rule | Details |
 | --- | --- |
-| Output | `ai_docs/` folder at project root |
-| Accuracy | All info based on REAL code |
-| Interaction | Question phase MANDATORY before generating |
-| Language | English |
+| Output | `ai_docs/` folder + updated `README.md` at project root |
+| Accuracy | All info based on REAL code — never guess |
+| Interaction | No questions — analyze and generate autonomously |
+| Language | `ai_docs/` in English, `README.md` in PT-BR |
 | Format | Markdown with tables, real code examples |
 
 ## Workflow
@@ -27,8 +27,8 @@ $ARGUMENTS
 | Step | Action | Condition |
 | --- | --- | --- |
 | 1 | Repository discovery | Always |
-| 2 | Ask user (8-12 questions) | Always |
-| 3 | Generate documentation | After approval |
+| 2 | Generate AI docs (`ai_docs/`) | Always |
+| 3 | Update README.md | Always |
 | 4 | Validate | Always |
 
 ### Step 1: Discovery
@@ -43,23 +43,9 @@ Automatically analyze:
 - External integrations and service communication
 - TODOs, FIXMEs, HACKs, workarounds in code
 - CI/CD configs, Dockerfiles, K8s manifests
+- Existing README.md — identify outdated sections
 
-### Step 2: Questions (8-12)
-
-Cover:
-- **Purpose**: repo's role in ecosystem, business problem solved
-- **Stack**: tech decisions and motivations
-- **Features**: critical, planned, deprecated
-- **Business Rules**: complex, compliance, essential validations
-- **APIs** (if applicable): main endpoints, auth, rate limiting
-- **Microservices** (if applicable): domain, communication, resilience
-- **Integrations**: related repos, critical dependencies
-- **Gotchas**: pitfalls, counter-intuitive behaviors, workarounds
-- **What do you wish you knew when you started?**
-
-Multiple rounds if needed. Present summary and ask for approval.
-
-### Step 3: Generate Docs
+### Step 2: Generate AI Docs
 
 Create `ai_docs/` with:
 
@@ -83,6 +69,33 @@ Each file:
 - Non-applicable sections: omit entirely (don't leave empty)
 - Undeterminable info: mark "TO BE COMPLETED" with instructions
 
+### Step 3: Update README.md
+
+Update the project `README.md` to reflect the **current** codebase. Also update `docs/README.md` if it exists.
+
+The README MUST include (in order):
+1. **Project title + one-liner description**
+2. **Features table** — main capabilities
+3. **Architecture** — diagram + explanation matching REAL folder structure
+4. **Folder structure** — generated from actual `ls`, NOT copy-pasted from old docs
+5. **Tech stack table** — with real versions from go.mod / package.json
+6. **Setup instructions** — prerequisites, env vars, docker, run commands
+7. **Available services** — local ports, credentials
+8. **Useful commands** — make targets, test, lint, proto
+9. **API examples** — grpcurl / curl examples for main endpoints
+10. **Health check** — how to verify the service is running
+11. **Environment variables table**
+12. **Additional docs links** — only link files that actually exist
+13. **License**
+
+Rules:
+- Remove references to directories/files that no longer exist
+- Remove "Proximos Passos" checklist items that are already done
+- Keep language in PT-BR for README.md
+- Architecture diagram must match actual code structure
+- Folder structure must be max 3 levels deep (don't list every file)
+- If `docs/README.md` exists and is outdated, update it too or recommend removal
+
 ### Step 4: Validate
 
 - [ ] All content based on real code
@@ -92,3 +105,7 @@ Each file:
 - [ ] Gotchas captured
 - [ ] Content specific to the project
 - [ ] Optional files included only when relevant
+- [ ] README.md folder structure matches reality
+- [ ] README.md tech versions match go.mod/package.json
+- [ ] No dead links to non-existent docs
+- [ ] README.md architecture diagram matches actual code
