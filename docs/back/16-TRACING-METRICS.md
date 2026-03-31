@@ -102,6 +102,7 @@ func Init(ctx context.Context, cfg Config) (func(context.Context) error, error) 
     conn, err := setupGRPCConn(cfg)      // Conexao gRPC com collector
     tp, err := setupTracer(ctx, conn, res, cfg) // TracerProvider
     mp, err := setupMeter(ctx, conn, res)       // MeterProvider
+    lp, err := setupLogger(ctx, conn, res)      // LoggerProvider (zerolog → OTel bridge)
 
     // Propagadores W3C
     otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
@@ -120,6 +121,7 @@ func Init(ctx context.Context, cfg Config) (func(context.Context) error, error) 
         var errs []error
         errs = append(errs, tp.Shutdown(ctx))
         errs = append(errs, mp.Shutdown(ctx))
+        errs = append(errs, lp.Shutdown(ctx))
         return errors.Join(errs...)
     }, nil
 }
@@ -178,6 +180,50 @@ otel.SetMeterProvider(mp)
 ```
 
 **Intervalo de 15s:** Metricas sao exportadas a cada 15 segundos. Adequado para producao — nao afeta latencia de requests.
+
+### Logger Provider (Logs → OTel)
+
+The LoggerProvider bridges zerolog output into the OTel Logs pipeline, exporting logs via OTLP to the collector alongside traces and metrics.
+
+```go
+import (
+    otellog "go.opentelemetry.io/otel/sdk/log"
+    otlploggrpc "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+    "go.opentelemetry.io/otel/log/global"
+)
+
+func setupLogger(ctx context.Context, conn *grpc.ClientConn, res *resource.Resource) (*otellog.LoggerProvider, error) {
+    exporter, err := otlploggrpc.New(ctx, otlploggrpc.WithGRPCConn(conn))
+    if err != nil {
+        return nil, fmt.Errorf("failed to create log exporter: %w", err)
+    }
+
+    lp := otellog.NewLoggerProvider(
+        otellog.WithProcessor(otellog.NewBatchProcessor(exporter)),
+        otellog.WithResource(res),
+    )
+    global.SetLoggerProvider(lp)
+    return lp, nil
+}
+```
+
+**Dependencies:**
+- `go.opentelemetry.io/otel/sdk/log` — LoggerProvider + BatchProcessor
+- `go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc` — OTLP gRPC exporter for logs
+- `go.opentelemetry.io/otel/log/global` — global LoggerProvider registration
+
+**OTEL Collector pipeline update** — add a `logs` pipeline:
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]  # or loki, elasticsearch, etc.
+```
+
+The zerolog hook (see 15-LOGGING.md) converts zerolog events into OTel log records and sends them through this LoggerProvider.
 
 ### Graceful Shutdown
 
