@@ -2,6 +2,25 @@
 
 Guide for AI assistants working in this repository. Fullstack: Go (Hexagonal/DDD) + React (Vite/TypeScript).
 
+## Ecosystem RAG — MANDATORY
+
+**BEFORE answering ANY question about services, architecture, APIs, events, integrations, domain logic, or impact analysis**, you MUST consult the ecosystem-rag MCP:
+
+1. **First**: Use `search_docs` to find relevant documentation
+2. **Then**: Use `get_service` to load the full doc if needed
+3. **For dependencies**: Use `get_connections` or `get_graph`
+4. **For impact**: Use `find_impact`
+
+This is NOT optional. The RAG has detailed docs for 27 microservices with business logic, algorithms, state machines, pricing rules, and verified connections. Your training data does NOT have this — always check the RAG first.
+
+**Available MCP tools:**
+- `search_docs(query, service?, doc_type?, limit?)` — BM25 search across all docs
+- `get_service(service, doc_type)` — full doc content (overview, architecture, domain, apis, events, data, config, deploy, impact, integrations)
+- `list_services()` — all 27 services with categories
+- `get_connections(service)` — verified inter-service connections
+- `get_graph(name)` — cross-service graphs (full-topology, event-flows, grpc-mesh, http-mesh, data-dependencies, auth-flow)
+- `find_impact(service, change?)` — what breaks when a service changes
+
 ## Language Rules
 
 - **Code**: ALWAYS English — variable names, function names, types, constants, comments, commit messages, PR titles, branch names. NEVER Portuguese in code.

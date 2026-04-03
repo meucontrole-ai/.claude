@@ -22,7 +22,7 @@
 1. **Necessidade real**: API nativa do browser ou Node nao resolve? Tem justificativa concreta?
 2. **Bundle size**: qual o impacto no bundle? Verifique com `bundlephobia.com`
 3. **Manutencao ativa**: ultimo commit < 6 meses, issues respondidas
-4. **Adocao**: > 1k stars no GitHub ou parte do ecossistema oficial
+4. **Adocao**: > 1k stars no GitHub ou parte do MeuControle oficial
 5. **Seguranca**: sem vulnerabilidades conhecidas (`npm audit`)
 6. **Tree-shaking**: a biblioteca suporta tree-shaking (ESM)?
 7. **TypeScript**: possui tipos embutidos ou `@types/` atualizado?
@@ -85,7 +85,7 @@ npx license-checker --summary
 | Testing UI | @testing-library/react | Filosofia de teste por comportamento |
 | API Mocking | msw | Service Worker, intercepta fetch real |
 | E2E Testing | @playwright/test | Multi-browser, auto-wait, trace viewer |
-| Linting | eslint | Extensivel, ecossistema rico |
+| Linting | eslint | Extensivel, MeuControle rico |
 | Formatting | prettier | Opinativo, zero config, consistente |
 
 ---
