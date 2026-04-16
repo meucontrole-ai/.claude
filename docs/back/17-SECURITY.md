@@ -122,3 +122,116 @@ NAO usamos `go-playground/validator` com struct tags. Validacao explicita no con
 5. Validacao no domain construtor, NAO em middleware
 6. Secrets via env vars, NUNCA hardcoded
 7. Logs sem PII (sem CPF, cartao, tokens)
+
+---
+
+## SSRF — Validação de URL inbound
+
+Se seu serviço aceita URL do usuário e faz request pra ela (webhooks, avatar fetch, OAuth callback), **valide ANTES**:
+
+```go
+func SafeFetchURL(raw string) (*http.Response, error) {
+    u, err := url.Parse(raw)
+    if err != nil {
+        return nil, shared.NewDomainError(shared.ErrCodeInvalidArgument, "invalid URL")
+    }
+    if u.Scheme != "https" {
+        return nil, shared.NewDomainError(shared.ErrCodeInvalidArgument, "only https allowed")
+    }
+
+    ips, err := net.LookupIP(u.Hostname())
+    if err != nil || len(ips) == 0 {
+        return nil, shared.NewDomainError(shared.ErrCodeInvalidArgument, "DNS lookup failed")
+    }
+    for _, ip := range ips {
+        if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
+           ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified() {
+            return nil, shared.NewDomainError(shared.ErrCodeInvalidArgument, "blocked IP range")
+        }
+    }
+
+    client := &http.Client{Timeout: 10 * time.Second}
+    return client.Get(u.String())
+}
+```
+
+Bloqueia IMDS cloud (`169.254.169.254`), redes privadas, loopback.
+
+### Cuidado com redirect bounce
+
+Client HTTP padrão segue redirects. URL externo pode redirecionar pra IP interno. Revalide em cada hop:
+
+```go
+client := &http.Client{
+    CheckRedirect: func(req *http.Request, via []*http.Request) error {
+        return validateHost(req.URL.Hostname())
+    },
+}
+```
+
+---
+
+## HMAC constant-time — sempre `hmac.Equal`
+
+```go
+// ❌ timing attack
+if receivedSig == computedSig { ... }
+
+// ✅ constant-time
+if hmac.Equal([]byte(receivedSig), []byte(computedSig)) { ... }
+```
+
+`hmac.Equal` compara TODOS os bytes mesmo quando os primeiros já divergem — atacante não infere prefix válido via medição de latência.
+
+---
+
+## Redação de PII em logs
+
+Campos nunca em texto claro nos logs: `CPF`, `PAN`, `CVV`, `cookie`, `authorization`, `token`, `password`.
+
+```go
+// Middleware que redige request body antes de logar
+func RedactPII(body []byte) []byte {
+    var data map[string]any
+    if err := json.Unmarshal(body, &data); err != nil {
+        return body
+    }
+    for _, field := range []string{"cpf","pan","cvv","password","token"} {
+        if _, ok := data[field]; ok {
+            data[field] = "***REDACTED***"
+        }
+    }
+    redacted, _ := json.Marshal(data)
+    return redacted
+}
+```
+
+---
+
+## Payment/price tampering — re-verificar no servidor
+
+Nunca aceite `price` que o cliente manda. Sempre relookup do catálogo ANTES:
+
+```go
+// ❌ cliente manda price: 0.01 e você aceita
+total += item.Price * item.Quantity
+
+// ✅ preço vem do servidor
+offer, _ := catalogRepo.FindOffer(ctx, item.OfferID)
+total += offer.Price * item.Quantity
+```
+
+Aplica pra qualquer valor de negócio do cliente: discount, fee, tax, commission.
+
+---
+
+## SQL Injection — placeholders sempre
+
+GORM com structs/maps é seguro. `Raw` / `Exec` com string concat NÃO:
+
+```go
+// ❌ vulnerável
+db.Raw(fmt.Sprintf("SELECT * FROM x WHERE id = '%s'", userInput))
+// ✅ placeholder
+db.Raw("SELECT * FROM x WHERE id = ?", userInput)
+```

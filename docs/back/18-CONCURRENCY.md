@@ -132,3 +132,61 @@ result, err := externalService.Call(ctx)
 6. Channels fechados pelo produtor, nunca pelo consumidor
 7. Recovery em goroutines background (panic recovery)
 8. RWMutex quando leituras >> escritas, Mutex quando equivalentes
+
+---
+
+## Armadilha: Optimistic locking incompleto
+
+Coberto em `11-REPOSITORY-PATTERN.md`, repetindo porque é crítico: se dois processos atualizam o mesmo agregado simultaneamente e seu `Updates(map)` não inclui `version` OU não checa `RowsAffected`, o último write vence silenciosamente.
+
+```go
+// ❌ errado — last-write-wins
+db.Updates(map[string]interface{}{"status": m.Status})
+
+// ✅ correto
+result := db.Where("id = ? AND version = ?", m.ID, originalVersion).
+    Updates(map[string]interface{}{
+        "status":  m.Status,
+        "version": m.Version,
+    })
+if result.RowsAffected == 0 {
+    return shared.NewDomainError(shared.ErrCodeConflict, "stale version")
+}
+```
+
+---
+
+## Armadilha: read-after-write em serviços com múltiplas conexões
+
+Se o frontend faz `POST /x` seguido de `PATCH /x/:id` e o backend tem pool de conexões > 1, o write do POST pode ainda não ter refletido quando o PATCH lê.
+
+Mitigações:
+- `MaxOpenConns=1` se throughput permitir
+- `SELECT pg_advisory_xact_lock(hash)` dentro da transaction pra forçar ordem
+- Idempotência por estado-desejado no PATCH (cliente manda o state inteiro, não diff) — elimina race por design
+
+---
+
+## Goroutine fire-and-forget (notify assíncrono)
+
+Comum em publish pra outbox/webhook/broker. Use com proteção:
+
+```go
+go func() {
+    defer func() {
+        if r := recover(); r != nil {
+            log.Error().Any("panic", r).Msg("background task panicked")
+        }
+    }()
+
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+
+    if err := client.Notify(ctx, params); err != nil {
+        log.Error().Err(err).Msg("notify failed")
+        // considerar agendar retry via outbox
+    }
+}()
+```
+
+Nunca `go fn()` sem timeout — goroutines vazadas acumulam memória. Sempre `recover()` pra panic não derrubar o processo.

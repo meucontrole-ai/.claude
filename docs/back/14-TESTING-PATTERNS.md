@@ -206,3 +206,73 @@ Teste separado (nao table-driven) para cenarios de infra error.
 7. `require.NoError` para erros fatais, `assert.Equal` para verificacoes
 8. Flag `-race` obrigatoria: `go test ./... -race`
 9. Testes no mesmo package do use case (nao _test package separado)
+
+---
+
+## Teste de regressão de state machine
+
+Bugs de state machine são silenciosos — código que "quase funciona" passa code review. Pro contrato da máquina de estado ficar trancado, teste **TODAS** as transições válidas E inválidas:
+
+```go
+func TestStatusTransitions(t *testing.T) {
+    all := []Status{StatusCreated, StatusPending, StatusFinal, StatusConcluded, StatusCancelled}
+
+    for _, from := range all {
+        for _, to := range all {
+            t.Run(fmt.Sprintf("%s → %s", from, to), func(t *testing.T) {
+                got := from.CanTransitionTo(to)
+                want := expectedTransition(from, to)
+                assert.Equal(t, want, got)
+            })
+        }
+    }
+}
+```
+
+Se alguém adicionar um status novo ou mudar `validTransitions`, o teste quebra com diff claro mostrando todas as células afetadas.
+
+### Teste de reversão (Undo)
+
+Se o domínio tem operações revertíveis, teste que o método aceita o status "reversível":
+
+```go
+func TestUndoAcceptsFinal(t *testing.T) {
+    a := aggregateWithStatus(StatusFinal)
+    err := a.Undo()
+    assert.NoError(t, err)
+    assert.Equal(t, StatusPrevious, a.Status)
+}
+```
+
+Garante que `IsTerminal()` não bloqueia a reversão inadvertidamente.
+
+---
+
+## Teste de idempotência
+
+Operações idempotentes devem manter identidade (SessionID, correlation) entre chamadas repetidas:
+
+```go
+func TestActivateTwiceKeepsSession(t *testing.T) {
+    a := NewAggregate()
+    _ = a.Activate(attrs1)
+    first := a.SessionID
+
+    _ = a.Activate(attrs2)
+    assert.Equal(t, first, a.SessionID)
+}
+```
+
+---
+
+## Integration tests com LocalStack
+
+Use cases que interagem com SQS/SNS/S3 devem ter integration test com LocalStack:
+
+```bash
+docker compose -f docker-compose.test.yml up -d localstack postgres
+go test ./... -tags=integration
+docker compose -f docker-compose.test.yml down
+```
+
+Marker de build tag (`//go:build integration`) isola esses testes do ciclo rápido de unit tests.

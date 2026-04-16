@@ -85,3 +85,89 @@ type ValidationCompletedEvent struct {
 3. Saga domain (commands/events) vive em `domain/saga/`
 4. Consumer implementa graceful shutdown via context
 5. Desserializacao de mensagem SQS → DTO → domain command
+
+---
+
+## Outbox pattern como pré-requisito
+
+Pra garantir que eventos disparados do domínio **cheguem** ao consumer externo (SQS/SNS/webhook), use o padrão outbox (docs/back/28-OUTBOX-PATTERN.md):
+
+1. Gravar evento como linha em `outbox` dentro da MESMA transação do agregado.
+2. Worker separado lê `WHERE published_at IS NULL`, publica, marca `published_at`.
+3. Consumer externo idempotente por `event.id`.
+
+Sem outbox, `DB commit + publish` não é atômico e eventos podem sumir ou duplicar.
+
+---
+
+## Validação E2E com LocalStack
+
+Antes de produção, valide outbox → SQS → consumer em ambiente local:
+
+```yaml
+# docker-compose.test.yml
+services:
+  localstack:
+    image: localstack/localstack:latest
+    environment: [SERVICES=sqs,sns]
+    ports: ["4566:4566"]
+```
+
+```bash
+aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name events
+curl -X POST localhost:8080/...   # trigger use case
+aws --endpoint-url=http://localhost:4566 sqs receive-message --queue-url ...
+```
+
+Se mensagem não chega, diagnóstico pela tabela `outbox`:
+```sql
+SELECT event_type, attempts, last_error, published_at
+FROM outbox ORDER BY created_at DESC LIMIT 10;
+```
+
+---
+
+## Consumer idempotente
+
+At-least-once delivery = mesma mensagem pode chegar 2x. Consumer não pode duplicar efeito:
+
+### 1. Dedupe por event ID
+
+```go
+func (h *Handler) Handle(ctx context.Context, msg Message) error {
+    if already, _ := h.store.Exists(ctx, msg.EventID); already {
+        return nil
+    }
+    if err := h.doBusiness(ctx, msg); err != nil {
+        return err
+    }
+    return h.store.MarkProcessed(ctx, msg.EventID)
+}
+```
+
+### 2. Idempotência natural do estado
+
+Se a operação em si é idempotente (ex: `SET status = 'paid' WHERE id = X`), rodar 2x é inofensivo. Preferir essa abordagem quando possível.
+
+---
+
+## Graceful shutdown
+
+Consumers em produção DEVEM terminar mensagem em andamento antes de encerrar:
+
+```go
+func (c *Consumer) Run(ctx context.Context) error {
+    for {
+        select {
+        case <-ctx.Done():
+            c.waitInFlightDrain()
+            return nil
+        default:
+            msg := c.queue.Receive(ctx)
+            c.handle(msg)
+        }
+    }
+}
+```
+
+Senão, `SIGTERM` no meio do processamento deixa mensagem "em voo" que vai ser re-entregue → duplicação.

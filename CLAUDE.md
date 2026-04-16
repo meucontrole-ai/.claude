@@ -24,8 +24,8 @@ This is NOT optional. The RAG has detailed docs for 27 microservices with busine
 ## Language Rules
 
 - **Code**: ALWAYS English — variable names, function names, types, constants, comments, commit messages, PR titles, branch names. NEVER Portuguese in code.
-- **Communication**: ALWAYS reply to the user in **PT-BR** (Brazilian Portuguese). No exceptions.
-- **Docs in `.claude/`**: English.
+- **Communication**: ALWAYS reply to the user in **PT-BR** (Brazilian Portuguese), com acentuação correta (á, ã, ç, é, í, ó, ú). Texto sem acento é erro de ortografia.
+- **Docs in `.claude/docs/`**: inglês técnico para títulos/estrutura, mas explicações em PT-BR são aceitas e DEVEM vir com acentos certos.
 - **File names**: English.
 
 ## AI Documentation (`ai_docs/`)
@@ -90,6 +90,9 @@ Guides are organized by scope:
 **IF** generating aggregate docs **THEN** read `.claude/docs/back/24-DOC-AGGREGATE.md` (~2k tokens)
 **IF** generating adapter docs **THEN** read `.claude/docs/back/25-DOC-ADAPTER.md` (~2k tokens)
 **IF** reviewing PR **THEN** read `.claude/docs/back/26-PR-REVIEW.md` (~4k tokens)
+**IF** implementing audit log / event_logs / session timeline / soft-delete **THEN** read `.claude/docs/back/27-EVENT-LOG-AUDIT.md` (~4k tokens)
+**IF** implementing outbox pattern / guaranteeing event delivery / validating async flow with LocalStack **THEN** read `.claude/docs/back/28-OUTBOX-PATTERN.md` (~3k tokens)
+**IF** adding multi-tenant support / debugging tenant schema / running migrations across tenants **THEN** read `.claude/docs/back/29-MULTI-TENANCY.md` (~3k tokens)
 **IF** need full flow understanding **THEN** read `.claude/docs/back/00-WALKTHROUGH.md` (~4k tokens)
 **IF** need project structure understanding **THEN** read `.claude/docs/back/01-PROJECT-STRUCTURE.md` + `.claude/docs/back/02-COMPOSITION-ROOT.md` (~5k tokens)
 
@@ -109,6 +112,9 @@ Guides are organized by scope:
 **IF** styling with Tailwind/CVA/theming **THEN** read `.claude/docs/front/12-STYLING.md` (~3k tokens)
 **IF** implementing accessibility (WCAG, ARIA, keyboard nav) **THEN** read `.claude/docs/front/13-ACCESSIBILITY.md` (~3k tokens)
 **IF** configuring routing (React Router, guards, lazy routes) **THEN** read `.claude/docs/front/14-ROUTING.md` (~3k tokens)
+**IF** implementing SSE/WebSocket realtime + cache invalidation **THEN** read `.claude/docs/front/15-REALTIME-SSE.md` (~3k tokens)
+**IF** implementing optimistic updates with rollback on RTK Query **THEN** read `.claude/docs/front/16-OPTIMISTIC-UPDATES.md` (~3k tokens)
+**IF** building modals with collapsible sections, nested modals, auto-triggered confirms **THEN** read `.claude/docs/front/17-MODAL-PATTERNS.md` (~3k tokens)
 
 ### Reference Tables
 
@@ -142,6 +148,9 @@ Guides are organized by scope:
 | Doc: Aggregate | .claude/docs/back/24-DOC-AGGREGATE.md | ~2k |
 | Doc: Adapter | .claude/docs/back/25-DOC-ADAPTER.md | ~2k |
 | PR Review | .claude/docs/back/26-PR-REVIEW.md | ~4k |
+| Event Log & Audit Trail | .claude/docs/back/27-EVENT-LOG-AUDIT.md | ~4k |
+| Outbox Pattern | .claude/docs/back/28-OUTBOX-PATTERN.md | ~3k |
+| Multi-Tenancy | .claude/docs/back/29-MULTI-TENANCY.md | ~3k |
 
 #### Frontend (React + Vite + TypeScript)
 
@@ -161,6 +170,9 @@ Guides are organized by scope:
 | Styling (Tailwind, CVA) | .claude/docs/front/12-STYLING.md | ~3k |
 | Accessibility (WCAG) | .claude/docs/front/13-ACCESSIBILITY.md | ~3k |
 | Routing (React Router) | .claude/docs/front/14-ROUTING.md | ~3k |
+| Realtime (SSE) & cache invalidation | .claude/docs/front/15-REALTIME-SSE.md | ~3k |
+| Optimistic updates (RTK Query) | .claude/docs/front/16-OPTIMISTIC-UPDATES.md | ~3k |
+| Modal & Collapsible patterns | .claude/docs/front/17-MODAL-PATTERNS.md | ~3k |
 
 **Token efficiency**: Load only what you need. Typical task = 5-10k tokens instead of ~80k+.
 
