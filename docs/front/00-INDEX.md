@@ -53,3 +53,11 @@ Quick reference for React frontend conventions. Routing is handled by CLAUDE.md 
 
 - No inline comments (only JSDoc on exported functions and complex utilities)
 - No emojis in files, comments, or code
+
+## Money Handling (CRITICAL)
+
+- Backend stores money as **integer cents** (`OrderAmount: 2390 = R$ 23,90`).
+- Divide by 100 **EXACTLY ONCE**, at the formatter layer: `formatCurrency(cents / 100)`.
+- NEVER divide by 100 in the API client, store slice, component props, AND the formatter. That double-division produces the classic `R$ 3,50 vs R$ 350` bug.
+- When inspecting a money value, check its variable name: `cents` / `amountCents` / `OrderAmount` → integer cents; `priceBRL` / `formatted` → already divided.
+- Payment inputs: store typed digits as cents (e.g. `"600"` means R$ 6,00). Never parse as float.

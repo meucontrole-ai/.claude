@@ -345,3 +345,77 @@ test('pagina de login deve ser acessivel', async ({ page }) => {
 10. axe-core sem violacoes nos testes?
 11. Modal trap focus e restaura focus ao fechar?
 12. Formularios exibem erros com role="alert"?
+
+---
+
+## axe-core no CI
+
+```ts
+import { axe, toHaveNoViolations } from "jest-axe";
+expect.extend(toHaveNoViolations);
+
+it("não tem violações de acessibilidade", async () => {
+  const { container } = render(<Component />);
+  expect(await axe(container)).toHaveNoViolations();
+});
+```
+
+Rode em suite separada (`vitest --run tests/a11y/`) pra feedback rápido no dev. Configure severity mínima (ex: fail só em `serious`/`critical`).
+
+---
+
+## Queries do Testing Library por prioridade
+
+```ts
+// ✅ priorize, top → bottom
+getByRole("button", { name: /salvar/i })   // 1. role
+getByLabelText(/email/i)                    // 2. label
+getByPlaceholderText(/digite/i)             // 3. placeholder
+getByText(/confirmar/i)                     // 4. texto visível
+getByDisplayValue(/usuario@/i)              // 5. valor atual
+getByAltText(/logo/i)                       // 6. alt
+getByTitle(/fechar/i)                       // 7. title
+getByTestId("submit-btn")                   // ❌ último recurso
+```
+
+Testar pelo mesmo meio que um leitor de tela/teclado usaria = teste + a11y garantidos.
+
+---
+
+## `prefers-reduced-motion`
+
+Sempre ofereça fallback pra quem desabilitou animações:
+
+```tsx
+<div className="transition-all duration-200 motion-safe:animate-in motion-safe:fade-in" />
+```
+
+`motion-safe:` (Tailwind) é equivalente a `@media (prefers-reduced-motion: no-preference)`. Animação decorativa NÃO deve rodar em usuário que pediu menos movimento.
+
+---
+
+## Keyboard navigation checklist
+
+- **Tab / Shift+Tab**: navega em ordem lógica
+- **Enter**: ativa botão primário / submete form
+- **Space**: ativa botões, toggle de checkbox
+- **Escape**: fecha modal/dropdown
+- **Arrow keys**: navega dentro de listbox/menu
+- **Home/End**: pula pro início/fim de lista
+
+Teste: desplugue o mouse e tente usar a tela. Qualquer lugar impossível de navegar = falha.
+
+---
+
+## Foco dentro de modal (focus trap)
+
+```tsx
+useEffect(() => {
+  if (!open) return;
+  const previousFocus = document.activeElement as HTMLElement;
+  dialogRef.current?.focus();
+  return () => previousFocus?.focus();  // restaura ao fechar
+}, [open]);
+```
+
+Combine com lib especializada (`focus-trap-react`, `@radix-ui/react-dialog`) pra ciclar Tab dentro do modal sem sair pro resto do DOM.

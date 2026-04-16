@@ -418,3 +418,97 @@ export default defineConfig({
 8. Web Vitals dentro dos thresholds (LCP < 2.5s, CLS < 0.1, INP < 200ms)?
 9. Prefetching implementado para navegacao previsivel?
 10. Vite bundle visualizer sem dependencias excessivas?
+
+---
+
+## React 18+: APIs de concorrência
+
+### `startTransition` — marcar updates como não-urgentes
+
+Search, filtros, mudança de abas — updates que o usuário aceita ver "depois" enquanto a UI fica responsiva:
+
+```tsx
+import { useTransition } from "react";
+
+function Search() {
+  const [query, setQuery] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <>
+      <input
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);              // update urgente (input)
+          startTransition(() => {
+            setResults(expensiveFilter(e.target.value));  // não-urgente
+          });
+        }}
+      />
+      {isPending && <Spinner />}
+    </>
+  );
+}
+```
+
+### `useDeferredValue` — versão "atrasada" de um valor
+
+Alternativa a `startTransition` quando o valor vem de props ou state remoto:
+
+```tsx
+const deferredQuery = useDeferredValue(query);
+const results = useMemo(() => expensiveFilter(deferredQuery), [deferredQuery]);
+// input responde imediato; results recomputam com leve atraso
+```
+
+### `Suspense` + code splitting por rota
+
+```tsx
+const Dashboard = lazy(() => import("./Dashboard"));
+
+<Suspense fallback={<Skeleton />}>
+  <Dashboard />
+</Suspense>
+```
+
+Combine com `startTransition` na navegação pra o fallback não piscar em rotas que carregam rápido.
+
+### `useSyncExternalStore` pra stores externos
+
+Zustand, Redux vanilla, observables — em vez de subscribe manual em `useEffect` (que roda updates depois do render), `useSyncExternalStore` força render consistente:
+
+```tsx
+const selectedTab = useSyncExternalStore(
+  tabStore.subscribe,
+  tabStore.getSnapshot,
+);
+```
+
+---
+
+## Virtualização — quando acionar
+
+Liste 100+ itens OU DOM altura fixa de 40+px cada = candidato pra virtualização (TanStack Virtual, `react-window`).
+
+```tsx
+const rowVirtualizer = useVirtualizer({
+  count: items.length,
+  getScrollElement: () => parentRef.current,
+  estimateSize: () => 52,
+  overscan: 5,
+});
+```
+
+Sem virtualização, listar 500 itens renderiza 500 DOM nodes toda vez que qualquer coisa muda — INP disparado.
+
+---
+
+## Memoização — só quando mede
+
+- `useMemo` / `useCallback` têm custo (comparação de deps + hold de referência).
+- Só aplique em callbacks que são **dependência de `useEffect` de filhos memorizados** ou valores computados que custam > 1ms.
+- NÃO memoize tudo preventivamente — se a dep quebrar (referência mudando), o useMemo vira overhead sem ganho.
+
+Ferramentas pra decidir:
+- **React DevTools Profiler** → veja quais componentes renderizam mais do que deviam.
+- **why-did-you-render** em dev → pega re-renders desnecessários.

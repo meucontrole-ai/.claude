@@ -152,10 +152,72 @@ const (
 
 ## Regras
 
-1. `validTransitions` e a UNICA fonte de verdade para transicoes
-2. Status terminal = nao tem entrada em `validTransitions`
-3. `CanTransitionTo` e O(1) lookup, nao iteracao
-4. `transitionTo()` e PRIVADO — chamado apenas pelos metodos do agregado
-5. Webhooks usam `ApplyProviderStatus`, nao `transitionTo` diretamente
-6. `StatusPartiallyRefunded` → `StatusPartiallyRefunded` e valido (multiplos estornos parciais)
-7. `StatusPending` → `StatusCaptured` e valido (providers que pulam autorizacao)
+1. `validTransitions` é a ÚNICA fonte de verdade para transições
+2. Status terminal = não tem entrada em `validTransitions`
+3. `CanTransitionTo` é O(1) lookup, não iteração
+4. `transitionTo()` é PRIVADO — chamado apenas pelos métodos do agregado
+5. Webhooks usam `ApplyProviderStatus`, não `transitionTo` diretamente
+6. `StatusPartiallyRefunded` → `StatusPartiallyRefunded` é válido (múltiplos estornos parciais)
+7. `StatusPending` → `StatusCaptured` é válido (providers que pulam autorização)
+
+---
+
+## Armadilhas
+
+### 1. Guard `IsTerminal()` pode tornar código revertível inalcançável
+
+Se uma operação existe pra reverter um status (ex: um `Undo*` que volta `FinalState → PreviousState`), esse status **não pode** ser tratado como terminal na guarda de entrada do método — senão o branch de reversão fica morto.
+
+```go
+// ❌ errado
+func (s Status) IsTerminal() bool {
+    return s == StatusFinal || s == StatusConcluded || s == StatusCancelled
+}
+func (a *Aggregate) Undo() error {
+    if a.Status.IsTerminal() {
+        return error  // rejeita StatusFinal, impossibilita reversão
+    }
+    if a.Status == StatusFinal {
+        _ = a.transitionTo(StatusPrevious)  // código inalcançável
+    }
+}
+
+// ✅ correto — guarda checa só os realmente irreversíveis
+func (a *Aggregate) Undo() error {
+    if a.Status == StatusConcluded || a.Status == StatusCancelled {
+        return error
+    }
+    // StatusFinal aceito — método reverte via transitionTo
+}
+```
+
+Regra: "terminal" pra state machine (sem entrada em `validTransitions`) NÃO é o mesmo que "terminal pra operação X". Cada método revertível define seus próprios inválidos.
+
+### 2. Operações idempotentes preservam identidade de sessão
+
+Se um método pode ser chamado várias vezes no mesmo estado (ex: reattach, update de atributos sem trocar ciclo de vida) e o agregado tem um `SessionID` / correlation ID, **não regenere** quando o recurso já está no estado ativo:
+
+```go
+func (a *Aggregate) Activate(attrs Attrs) error {
+    isFreshActivation := a.Status != StatusActive || a.SessionID == ""
+    a.Attrs = attrs
+    a.Status = StatusActive
+    if isFreshActivation {
+        a.SessionID = shared.GenerateID()
+    }
+    // já ativo → mantém SessionID → audit log não fragmenta
+    return nil
+}
+```
+
+Senão cada chamada gera um ID novo e o audit log aparece quebrado em grupos separados.
+
+### 3. `RecordEvent` ≠ persistência no event_log
+
+`a.RecordEvent(...)` anexa o evento de domínio ao agregado. `a.PullEvents()` só retira pra consumo. A **persistência** é responsabilidade do use case chamar `eventLogger.Log(LogParams{...})`. Esquecer = estado muda, audit log não registra.
+
+### 4. SessionID top-level no LogParams, não só no diff
+
+Sistemas que agrupam eventos por sessão precisam do ID no **campo dedicado** do event_log (coluna `session_id`), não só dentro do JSON de `diff`. Camadas que consultam (frontend, timeline) podem usar um ou outro, e divergência = agrupamento quebrado.
+
+Regra: quando o use case roda em contexto de sessão, popule **ambos** — `LogParams.SessionID` E `diff["session_id"]`.

@@ -212,12 +212,56 @@ Todo metodo do repositorio cria um span de tracing.
 ## Regras
 
 1. Domain type NUNCA aparece com tags GORM — use model separado
-2. Mapper converte explicitamente (nao reflection, nao automapper)
-3. `ToModel()` e `ToDomain()` sao funcoes do package postgres, nao metodos
+2. Mapper converte explicitamente (não reflection, não automapper)
+3. `ToModel()` e `ToDomain()` são funções do package postgres, não métodos
 4. Optimistic locking: `WHERE version = ?` + check `RowsAffected`
 5. Duplicate key → `ErrCodeConflict`
 6. Record not found → `ErrCodeNotFound`
-7. Erros de infra → `WrapDomainError` (nao retorne erro GORM puro)
+7. Erros de infra → `WrapDomainError` (não retorne erro GORM puro)
 8. Preload de Attempts com ORDER BY `attempt_number ASC`
 9. `WithContext(ctx)` em TODA query GORM
-10. Todo metodo do repo cria span de tracing
+10. Todo método do repo cria span de tracing
+
+---
+
+## Armadilha Crítica: `Updates(map)` Incompleto
+
+Se você usa `Updates(map[string]interface{}{...})` pra escolher quais colunas mexer, **o map DEVE listar TODO campo mutável**. Esquecer um campo = mutação em memória NUNCA chega no banco, e o próximo `FindByID` devolve o valor antigo. Bug silencioso de perda de dados.
+
+**Exemplo do bug:**
+```go
+// ❌ VERSÃO COM BUG — um campo mutável esquecido
+result := r.db.WithContext(ctx).
+    Model(&model.AggregateModel{}).
+    Where("id = ? AND version = ?", m.ID, a.OriginalVersion).
+    Updates(map[string]interface{}{
+        "name":    m.Name,
+        "status":  m.Status,
+        "version": m.Version,
+        // ❌ session_id esquecido! Domínio muta, in-memory reflete,
+        // DB nunca persiste. Próximo FindByID devolve valor antigo.
+    })
+```
+
+Sintoma típico: método de domínio muta um campo, a response HTTP do método até mostra o valor novo (porque veio do objeto em memória), mas o próximo read do DB devolve o valor antigo — operação idempotente se repete desnecessariamente, comportamentos "fantasma" aparecem, audit logs fragmentam.
+
+**Checklist antes de commitar um repositório com `Updates(map)`:**
+
+1. Liste TODOS os campos da struct de domínio que mudam via métodos de mutação.
+2. Para cada um, confirme que está no map do `Updates`.
+3. Se existe `touch()` / `version++` no domínio, garanta que `version` está no map.
+4. Se o agregado tem `SessionID`, `Metadata`, `Snapshot`, ou qualquer campo de auditoria — incluí-los.
+5. Considere `db.Save(&model)` quando quer update full-row — menos propenso a esse bug, mas não permite optimistic locking granular.
+
+### Alternativa menos propensa a bug
+
+```go
+result := r.db.WithContext(ctx).
+    Model(&model.TableModel{}).
+    Where("id = ? AND version = ?", m.ID, t.OriginalVersion).
+    Select("*").                     // força update de TODAS as colunas
+    Omit("id", "created_at").        // menos as imutáveis
+    Updates(&m)                       // passa o struct, não o map
+```
+
+Essa forma é auto-documentada (update everything except X) e não silenciosamente esquece campos novos adicionados ao modelo.

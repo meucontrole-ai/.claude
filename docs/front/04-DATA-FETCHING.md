@@ -299,7 +299,58 @@ export type ReduxState<T> = {
 7. **NUNCA** duplique server state em slices manuais quando RTK Query ja gerencia o cache
 8. **SEMPRE** use `useAppDispatch` e `useAppSelector` — nunca os hooks genericos
 9. **USE** `keepUnusedDataFor` para configurar TTL de cache por endpoint
-10. **USE** `queryFn` customizado para requests multiplos ou logica condicional complexa
+10. **USE** `queryFn` customizado para requests múltiplos ou lógica condicional complexa
+
+---
+
+## Armadilha Crítica: invalidação de tag genérica vs por-ID
+
+Ao mutar um recurso que aparece em uma **lista**, você precisa invalidar **AMBAS** a tag específica (`{type: 'X', id: someId}`) e a tag genérica (`'X'`). Se só invalidar a específica, a query da lista **não refetcha** e a UI fica desatualizada até o usuário mudar de rota ou fechar/reabrir o modal.
+
+**Exemplo do bug:**
+```ts
+// useListXQuery() provê "X" (genérica).
+// useGetXQuery(id)  provê {type: "X", id}.
+
+mutateItem: builder.mutation<void, { parentId: string; itemId: string }>({
+  query: ...,
+  invalidatesTags: (_r, _e, { parentId }) => [
+    { type: "X", id: parentId }   // ❌ só a específica
+  ],
+}),
+```
+
+Sintoma: usuário clica numa ação de mutação, backend atualiza, MAS a lista que usa a query de listagem continua mostrando o antigo. Precisa fechar/reabrir o container ou trocar de rota pra refetch.
+
+**Correto:** invalide ambas:
+```ts
+invalidatesTags: (_r, _e, { orderId }) => [
+  { type: "Order", id: orderId },
+  "Order",  // força refetch das queries que usam providesTags: ["Order"]
+],
+```
+
+### Regras de tags RTK Query
+
+| Query | `providesTags` | Mutation que mexe nesse recurso |
+|---|---|---|
+| `useListXQuery()` (lista) | `['X']` | `invalidatesTags: ['X']` |
+| `useGetXQuery(id)` (item) | `(r, e, id) => [{type: 'X', id}]` | `invalidatesTags: (r, e, {id}) => [{type: 'X', id}]` |
+| Mutation que mexe em item E lista | — | **AMBAS**: `[{type: 'X', id}, 'X']` |
+
+### Nullish vs falsy na leitura de campos
+
+`??` trata **só** `null` e `undefined` como "ausente". String vazia `""` passa pelo `??`. Se o backend retorna `session_id: ""` (via `json:",omitempty"` pode ou não aparecer), leituras do tipo `log.session_id ?? diff?.session_id` não caem no fallback.
+
+```ts
+// ❌ errado — "" passa
+const sessionId = log.session_id ?? diff?.session_id ?? "";
+
+// ✅ correto — "" também cai no fallback
+const sessionId = log.session_id || diff?.session_id || "";
+```
+
+Use `??` só quando o valor vazio é semanticamente válido e diferente de "ausente".
 
 ---
 

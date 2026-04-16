@@ -46,3 +46,18 @@ SOLID, Clean Code, KISS, DRY, YAGNI, Fail Fast. Design Patterns only when solvin
 - Hand-written spies, NOT generated mocks
 - Table-driven tests, testify (assert/require)
 - `-race` flag mandatory
+
+## Money Handling (CRITICAL)
+
+- Store money as `int64` cents inside `shared.Money{Amount int64, Currency string}`. NEVER float.
+- API responses expose cents as-is (`"orderAmount": 2390` = R$ 23,90). The frontend divides by 100 UMA única vez no formatter.
+- NEVER expose `amount / 100` in backend responses — double-conversion no cliente = bug garantido (R$ 3,50 virando R$ 350 e vice-versa).
+- Arithmetic: use domain methods (`money.Add`, `money.Subtract`) que validam currency.
+- Columns must be `BIGINT` / `NUMERIC(20)` — nunca `DECIMAL` ou `FLOAT`.
+
+## Repository Updates (CRITICAL)
+
+- When building the GORM `Updates(map[string]interface{}{...})` map, **list EVERY mutable field of the aggregate**. Forget one (ex: `session_id`) and mutations in memory never reach the DB — the next read returns the old value, a silent data-loss bug.
+- Prefer `db.Save(&model)` for full-row updates when you don't need partial column control. `Updates` with maps is only for explicit column-picking with optimistic locking.
+- Optimistic locking: always `WHERE id = ? AND version = ?` + bump `version` in the map. Check `RowsAffected == 0` → conflict.
+- Golden rule: every field you mutated via a domain method (`t.SessionID = ...`, `t.Status = ...`) must appear in the Updates map.
